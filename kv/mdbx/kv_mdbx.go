@@ -742,6 +742,14 @@ func (tx *MdbxTx) Commit() error {
 	//}
 	tx.CollectMetrics()
 
+	if tx.db.opts.label == kv.ChainDB {
+		txInfo, err := tx.tx.Info(true)
+		if err != nil {
+			return err
+		}
+		log.Info("Before commit", "space_dirty", txInfo.SpaceDirty, "spill", txInfo.Spill, "space_leftover", txInfo.SpaceLeftover)
+	}
+
 	latency, err := tx.tx.Commit()
 	if err != nil {
 		return err
@@ -755,17 +763,17 @@ func (tx *MdbxTx) Commit() error {
 		kv.DbCommitSync.Update(latency.Sync.Seconds())
 		kv.DbCommitEnding.Update(latency.Ending.Seconds())
 		kv.DbCommitTotal.Update(latency.Whole.Seconds())
-	}
 
-	log.Info("Commit",
-		"preparation", latency.Preparation,
-		"gc", latency.GC,
-		"audit", latency.Audit,
-		"write", latency.Write,
-		"fsync", latency.Sync,
-		"ending", latency.Ending,
-		"whole", latency.Whole,
-	)
+		log.Info("Commit",
+			"preparation", latency.Preparation,
+			"gc", latency.GC,
+			"audit", latency.Audit,
+			"write", latency.Write,
+			"fsync", latency.Sync,
+			"ending", latency.Ending,
+			"whole", latency.Whole,
+		)
+	}
 
 	return nil
 }
