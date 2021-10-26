@@ -30,6 +30,7 @@ import (
 
 	"github.com/c2h5oh/datasize"
 	stack2 "github.com/go-stack/stack"
+	"github.com/ledgerwatch/erigon-lib/common/dbg"
 	"github.com/ledgerwatch/erigon-lib/kv"
 	"github.com/ledgerwatch/log/v3"
 	"github.com/torquem-ch/mdbx-go/mdbx"
@@ -747,7 +748,7 @@ func (tx *MdbxTx) Commit() error {
 		if err != nil {
 			return err
 		}
-		log.Info("Before commit", "space_dirty", txInfo.SpaceDirty, "spill", txInfo.Spill, "space_leftover", txInfo.SpaceLeftover)
+		log.Info("Before commit", "space_dirty", txInfo.SpaceDirty, "spill", txInfo.Spill, "space_leftover", txInfo.SpaceLeftover, "trace", dbg.Stack())
 	}
 
 	latency, err := tx.tx.Commit()
