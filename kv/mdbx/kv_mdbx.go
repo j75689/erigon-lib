@@ -22,6 +22,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"runtime"
 	"sort"
@@ -32,7 +33,6 @@ import (
 	stack2 "github.com/go-stack/stack"
 	"github.com/ledgerwatch/erigon-lib/common/dbg"
 	"github.com/ledgerwatch/erigon-lib/kv"
-	"github.com/ledgerwatch/log/v3"
 	"github.com/torquem-ch/mdbx-go/mdbx"
 )
 
@@ -139,9 +139,11 @@ func (opts MdbxOpts) Open() (kv.RwDB, error) {
 		return nil, err
 	}
 	if opts.verbosity != -1 {
-		err = env.SetDebug(mdbx.LogLvl(opts.verbosity), mdbx.DbgDoNotChange, mdbx.LoggerDoNotChange) // temporary disable error, because it works if call it 1 time, but returns error if call it twice in same process (what often happening in tests)
-		if err != nil {
-			return nil, fmt.Errorf("db verbosity set: %w", err)
+		if opts.label == kv.ChainDB {
+			err = env.SetDebug(mdbx.LogLvlDebug, mdbx.DbgDoNotChange, mdbx.LoggerDoNotChange) // temporary disable error, because it works if call it 1 time, but returns error if call it twice in same process (what often happening in tests)
+			if err != nil {
+				return nil, fmt.Errorf("db verbosity set: %w", err)
+			}
 		}
 	}
 	if err = env.SetOption(mdbx.OptMaxDB, 100); err != nil {
