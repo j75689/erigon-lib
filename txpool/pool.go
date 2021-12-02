@@ -593,6 +593,7 @@ func (p *TxPool) AddRemoteTxs(_ context.Context, newTxs TxSlots) {
 		if ok {
 			continue
 		}
+		fmt.Printf("remote txn arrived %x\n", txn.IdHash)
 		p.unprocessedRemoteTxs.Append(txn, newTxs.senders.At(i), false)
 	}
 }
