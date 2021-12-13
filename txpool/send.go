@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	maxWatingForSendTx = 100 * time.Millisecond
+	maxWatingForSendTx = 50 * time.Millisecond
 )
 
 type SentryClient interface {
@@ -54,7 +54,7 @@ func NewSend(ctx context.Context, sentryClients []direct.SentryClient, pool Pool
 		sentryClients: sentryClients,
 		sendingTxs:    make(chan Hashes, 1024),
 	}
-	send.AsyncBroadcastLocalPooledTxsWorker(16)
+	send.AsyncBroadcastLocalPooledTxsWorker(32)
 	return send
 }
 
