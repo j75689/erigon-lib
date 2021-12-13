@@ -52,9 +52,9 @@ func NewSend(ctx context.Context, sentryClients []direct.SentryClient, pool Pool
 		ctx:           ctx,
 		pool:          pool,
 		sentryClients: sentryClients,
-		sendingTxs:    make(chan Hashes, 16),
+		sendingTxs:    make(chan Hashes, 1024),
 	}
-	send.AsyncBroadcastLocalPooledTxsWorker(1024)
+	send.AsyncBroadcastLocalPooledTxsWorker(16)
 	return send
 }
 
