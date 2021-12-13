@@ -186,7 +186,6 @@ func (s *GrpcServer) Add(ctx context.Context, in *txpool_proto.AddRequest) (*txp
 		}
 		j++
 	}
-	log.Info("grpc server add local txs", "len", len(in.RlpTxs))
 	discardReasons, err := s.txPool.AddLocalTxs(ctx, slots)
 	if err != nil {
 		return nil, err
