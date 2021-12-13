@@ -86,14 +86,16 @@ func (f *Send) AsyncBroadcastLocalPooledTxsWorker(workerSize int) {
 				case <-ticker.C:
 					if len(pendingTxs) > 0 {
 						f.BroadcastLocalPooledTxs(pendingTxs)
+						pendingTxs = pendingTxs[:0]
 					}
 				case data := <-f.sendingTxs:
 					func() {
-						pendingTxs = append(pendingTxs[:], data[:]...)
+						pendingTxs = append(pendingTxs, data...)
 						if len(pendingTxs) < 32*32 {
 							return
 						}
 						f.BroadcastLocalPooledTxs(pendingTxs)
+						pendingTxs = pendingTxs[:0]
 					}()
 				}
 			}
