@@ -52,7 +52,7 @@ func NewSend(ctx context.Context, sentryClients []direct.SentryClient, pool Pool
 		ctx:           ctx,
 		pool:          pool,
 		sentryClients: sentryClients,
-		sendingTxs:    make(chan Hashes, 1024),
+		sendingTxs:    make(chan Hashes, 16),
 	}
 	send.AsyncBroadcastLocalPooledTxsWorker(1024)
 	return send
@@ -77,15 +77,15 @@ func (f *Send) notifyTests() {
 func (f *Send) AsyncBroadcastLocalPooledTxsWorker(workerSize int) {
 	ticker := time.NewTicker(maxWatingForSendTx)
 	for i := 0; i < workerSize; i++ {
-		defer ticker.Stop()
 		go func() {
+			defer ticker.Stop()
 			pendingTxs := make(Hashes, 0, 32*128)
 			for {
 				select {
 				case <-ticker.C:
 					if len(pendingTxs) > 0 {
-						f.BroadcastLocalPooledTxs(pendingTxs)
-						log.Info("batch broadcast localTx", "tx_amount", len(pendingTxs)/32)
+						peers := f.BroadcastLocalPooledTxs(pendingTxs)
+						log.Info("batch broadcast localTx", "tx_amount", len(pendingTxs)/32, "peers", peers)
 						pendingTxs = pendingTxs[:0]
 					}
 				case data := <-f.sendingTxs:
@@ -93,8 +93,8 @@ func (f *Send) AsyncBroadcastLocalPooledTxsWorker(workerSize int) {
 					if len(pendingTxs)/32 < 32 {
 						continue
 					}
-					log.Info("batch broadcast localTx", "tx_amount", len(pendingTxs)/32)
-					f.BroadcastLocalPooledTxs(pendingTxs)
+					peers := f.BroadcastLocalPooledTxs(pendingTxs)
+					log.Info("batch broadcast localTx", "tx_amount", len(pendingTxs)/32, "peers", peers)
 					pendingTxs = pendingTxs[:0]
 				}
 			}
