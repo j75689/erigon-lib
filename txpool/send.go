@@ -43,7 +43,7 @@ type Send struct {
 	sentryClients []direct.SentryClient // sentry clients that will be used for accessing the network
 	pool          Pool
 
-	sendingTxs chan []byte
+	sendingTxs chan Hashes
 	wg         *sync.WaitGroup
 }
 
@@ -52,7 +52,7 @@ func NewSend(ctx context.Context, sentryClients []direct.SentryClient, pool Pool
 		ctx:           ctx,
 		pool:          pool,
 		sentryClients: sentryClients,
-		sendingTxs:    make(chan []byte, 1024),
+		sendingTxs:    make(chan Hashes, 1024),
 	}
 	send.AsyncBroadcastLocalPooledTxsWorker(1024)
 	return send
@@ -75,39 +75,26 @@ func (f *Send) notifyTests() {
 }
 
 func (f *Send) AsyncBroadcastLocalPooledTxsWorker(workerSize int) {
+	ticker := time.NewTicker(maxWatingForSendTx)
 	for i := 0; i < workerSize; i++ {
+		defer ticker.Stop()
 		go func() {
-			for data := range f.sendingTxs {
-				var req66, req65 *sentry.OutboundMessageData
-				for _, sentryClient := range f.sentryClients {
-					if !sentryClient.Ready() {
-						continue
-					}
-					switch sentryClient.Protocol() {
-					case direct.ETH65:
-						if req65 == nil {
-							req65 = &sentry.OutboundMessageData{
-								Id:   sentry.MessageId_NEW_POOLED_TRANSACTION_HASHES_65,
-								Data: data,
-							}
-						}
+			pendingTxs := make(Hashes, 0, 32*128)
 
-						_, err := sentryClient.SendMessageToAll(f.ctx, req65, &grpc.EmptyCallOption{})
-						if err != nil {
-							log.Warn("[txpool.send] BroadcastLocalPooledTxs", "err", err)
-						}
-					case direct.ETH66:
-						if req66 == nil {
-							req66 = &sentry.OutboundMessageData{
-								Id:   sentry.MessageId_NEW_POOLED_TRANSACTION_HASHES_66,
-								Data: data,
-							}
-						}
-						_, err := sentryClient.SendMessageToAll(f.ctx, req66, &grpc.EmptyCallOption{})
-						if err != nil {
-							log.Warn("[txpool.send] BroadcastLocalPooledTxs", "err", err)
-						}
+			for {
+				select {
+				case <-ticker.C:
+					if len(pendingTxs) > 0 {
+						f.BroadcastLocalPooledTxs(pendingTxs)
 					}
+				case data := <-f.sendingTxs:
+					func() {
+						pendingTxs = append(pendingTxs[:], data[:]...)
+						if len(pendingTxs) < 32*32 {
+							return
+						}
+						f.BroadcastLocalPooledTxs(pendingTxs)
+					}()
 				}
 			}
 		}()
@@ -130,7 +117,7 @@ func (f *Send) AsyncBroadcastLocalPooledTxs(txs Hashes) {
 			txs = txs[:0]
 		}
 
-		f.sendingTxs <- EncodeHashes(pending, nil)
+		f.sendingTxs <- pending
 	}
 }
 
