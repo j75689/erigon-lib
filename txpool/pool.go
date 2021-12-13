@@ -1311,12 +1311,12 @@ func MainLoop(ctx context.Context, db kv.RwDB, coreDB kv.RoDB, p *TxPool, newTxs
 			}
 
 			log.Info("local TxHashes", "txs_amount", len(localTxHashes)/32, "chan_num", len(newTxs))
-			sentTo := send.BroadcastLocalPooledTxs(localTxHashes)
+			send.AsyncBroadcastLocalPooledTxs(localTxHashes)
 			if len(localTxHashes)/32 > 0 {
 				if len(localTxHashes)/32 == 1 {
-					log.Info("local tx propagated", "to_peers_amount", sentTo, "tx_hash", fmt.Sprintf("%x", localTxHashes), "baseFee", p.pendingBaseFee.Load())
+					log.Info("local tx propagated", "tx_hash", fmt.Sprintf("%x", localTxHashes), "baseFee", p.pendingBaseFee.Load())
 				} else {
-					log.Info("local txs propagated", "to_peers_amount", sentTo, "txs_amount", len(localTxHashes)/32, "baseFee", p.pendingBaseFee.Load())
+					log.Info("local txs propagated", "txs_amount", len(localTxHashes)/32, "baseFee", p.pendingBaseFee.Load())
 				}
 			}
 			send.BroadcastRemotePooledTxs(remoteTxHashes)

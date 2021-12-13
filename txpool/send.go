@@ -19,11 +19,16 @@ package txpool
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/ledgerwatch/erigon-lib/direct"
 	"github.com/ledgerwatch/erigon-lib/gointerfaces/sentry"
 	"github.com/ledgerwatch/log/v3"
 	"google.golang.org/grpc"
+)
+
+const (
+	maxWatingForSendTx = 100 * time.Millisecond
 )
 
 type SentryClient interface {
@@ -38,7 +43,8 @@ type Send struct {
 	sentryClients []direct.SentryClient // sentry clients that will be used for accessing the network
 	pool          Pool
 
-	wg *sync.WaitGroup
+	sendingTxs chan []byte
+	wg         *sync.WaitGroup
 }
 
 func NewSend(ctx context.Context, sentryClients []direct.SentryClient, pool Pool) *Send {
@@ -46,6 +52,7 @@ func NewSend(ctx context.Context, sentryClients []direct.SentryClient, pool Pool
 		ctx:           ctx,
 		pool:          pool,
 		sentryClients: sentryClients,
+		sendingTxs:    make(chan []byte, 1024),
 	}
 }
 
@@ -62,6 +69,66 @@ const (
 func (f *Send) notifyTests() {
 	if f.wg != nil {
 		f.wg.Done()
+	}
+}
+
+func (f *Send) AsyncBroadcastLocalPooledTxsWorker(workerSize int) {
+	for i := 0; i < workerSize; i++ {
+		go func() {
+			for data := range f.sendingTxs {
+				var req66, req65 *sentry.OutboundMessageData
+				for _, sentryClient := range f.sentryClients {
+					if !sentryClient.Ready() {
+						continue
+					}
+					switch sentryClient.Protocol() {
+					case direct.ETH65:
+						if req65 == nil {
+							req65 = &sentry.OutboundMessageData{
+								Id:   sentry.MessageId_NEW_POOLED_TRANSACTION_HASHES_65,
+								Data: data,
+							}
+						}
+
+						_, err := sentryClient.SendMessageToAll(f.ctx, req65, &grpc.EmptyCallOption{})
+						if err != nil {
+							log.Warn("[txpool.send] BroadcastLocalPooledTxs", "err", err)
+						}
+					case direct.ETH66:
+						if req66 == nil {
+							req66 = &sentry.OutboundMessageData{
+								Id:   sentry.MessageId_NEW_POOLED_TRANSACTION_HASHES_66,
+								Data: data,
+							}
+						}
+						_, err := sentryClient.SendMessageToAll(f.ctx, req66, &grpc.EmptyCallOption{})
+						if err != nil {
+							log.Warn("[txpool.send] BroadcastLocalPooledTxs", "err", err)
+						}
+					}
+				}
+			}
+		}()
+	}
+}
+
+func (f *Send) AsyncBroadcastLocalPooledTxs(txs Hashes) {
+	defer f.notifyTests()
+	if len(txs) == 0 {
+		return
+	}
+
+	for len(txs) > 0 {
+		var pending Hashes
+		if len(txs) > p2pTxPacketLimit {
+			pending = txs[:p2pTxPacketLimit]
+			txs = txs[p2pTxPacketLimit:]
+		} else {
+			pending = txs[:]
+			txs = txs[:0]
+		}
+
+		f.sendingTxs <- EncodeHashes(pending, nil)
 	}
 }
 
