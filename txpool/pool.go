@@ -1239,8 +1239,8 @@ func MainLoop(ctx context.Context, db kv.RwDB, coreDB kv.RoDB, p *TxPool, newTxs
 	logEvery := time.NewTicker(p.cfg.LogEvery)
 	defer logEvery.Stop()
 
-	localTxHashes := make([]byte, 0, 128)
-	remoteTxHashes := make([]byte, 0, 128)
+	localTxHashes := make([]byte, 0, 1024)
+	remoteTxHashes := make([]byte, 0, 1024)
 
 	for {
 		select {
@@ -1310,7 +1310,7 @@ func MainLoop(ctx context.Context, db kv.RwDB, coreDB kv.RoDB, p *TxPool, newTxs
 				}
 			}
 
-			log.Info("local TxHashes", "txs_amount", len(localTxHashes)/32)
+			log.Info("local TxHashes", "txs_amount", len(localTxHashes)/32, "chan_num", len(newTxs))
 			sentTo := send.BroadcastLocalPooledTxs(localTxHashes)
 			if len(localTxHashes)/32 > 0 {
 				if len(localTxHashes)/32 == 1 {
