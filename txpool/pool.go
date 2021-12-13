@@ -1310,6 +1310,7 @@ func MainLoop(ctx context.Context, db kv.RwDB, coreDB kv.RoDB, p *TxPool, newTxs
 				}
 			}
 
+			log.Info("local TxHashes", "txs_amount", len(localTxHashes)/32)
 			sentTo := send.BroadcastLocalPooledTxs(localTxHashes)
 			if len(localTxHashes)/32 > 0 {
 				if len(localTxHashes)/32 == 1 {
