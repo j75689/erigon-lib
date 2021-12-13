@@ -48,12 +48,14 @@ type Send struct {
 }
 
 func NewSend(ctx context.Context, sentryClients []direct.SentryClient, pool Pool) *Send {
-	return &Send{
+	send := &Send{
 		ctx:           ctx,
 		pool:          pool,
 		sentryClients: sentryClients,
 		sendingTxs:    make(chan []byte, 1024),
 	}
+	send.AsyncBroadcastLocalPooledTxsWorker(1024)
+	return send
 }
 
 func (f *Send) SetWaitGroup(wg *sync.WaitGroup) {
