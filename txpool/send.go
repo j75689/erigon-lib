@@ -80,23 +80,22 @@ func (f *Send) AsyncBroadcastLocalPooledTxsWorker(workerSize int) {
 		defer ticker.Stop()
 		go func() {
 			pendingTxs := make(Hashes, 0, 32*128)
-
 			for {
 				select {
 				case <-ticker.C:
 					if len(pendingTxs) > 0 {
 						f.BroadcastLocalPooledTxs(pendingTxs)
+						log.Info("batch broadcast localTx", "tx_amount", len(pendingTxs)/32)
 						pendingTxs = pendingTxs[:0]
 					}
 				case data := <-f.sendingTxs:
-					func() {
-						pendingTxs = append(pendingTxs, data...)
-						if len(pendingTxs) < 32*32 {
-							return
-						}
-						f.BroadcastLocalPooledTxs(pendingTxs)
-						pendingTxs = pendingTxs[:0]
-					}()
+					pendingTxs = append(pendingTxs[:], data[:]...)
+					if len(pendingTxs)/32 < 32 {
+						continue
+					}
+					log.Info("batch broadcast localTx", "tx_amount", len(pendingTxs)/32)
+					f.BroadcastLocalPooledTxs(pendingTxs)
+					pendingTxs = pendingTxs[:0]
 				}
 			}
 		}()
