@@ -191,11 +191,11 @@ func (opts MdbxOpts) Open() (kv.RwDB, error) {
 
 		switch opts.syncMode {
 		case LazySync:
-			if err := env.SetOption(mdbx.SafeNoSync, mdbx.SafeNoSync); err != nil {
+			if err := env.SetOption(mdbx.SafeNoSync, 0); err != nil {
 				return nil, err
 			}
 		case AsyncSync:
-			if err := env.SetOption(mdbx.UtterlyNoSync, mdbx.UtterlyNoSync); err != nil {
+			if err := env.SetOption(mdbx.UtterlyNoSync, 0); err != nil {
 				return nil, err
 			}
 		}
