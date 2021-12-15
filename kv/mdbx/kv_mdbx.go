@@ -188,17 +188,17 @@ func (opts MdbxOpts) Open() (kv.RwDB, error) {
 		if err = env.SetOption(mdbx.OptRpAugmentLimit, opts.augumentLimit); err != nil {
 			return nil, err
 		}
-
-		switch opts.syncMode {
-		case LazySync:
-			if err := env.SetOption(mdbx.SafeNoSync, 0); err != nil {
-				return nil, err
-			}
-		case AsyncSync:
-			if err := env.SetOption(mdbx.UtterlyNoSync, 0); err != nil {
-				return nil, err
-			}
-		}
+		env.Sync(false, true)
+		// switch opts.syncMode {
+		// case LazySync:
+		// 	if err := env.SetOption(mdbx.SafeNoSync, 0); err != nil {
+		// 		return nil, err
+		// 	}
+		// case AsyncSync:
+		// 	if err := env.SetOption(mdbx.UtterlyNoSync, 0); err != nil {
+		// 		return nil, err
+		// 	}
+		// }
 		if err = os.MkdirAll(opts.path, 0744); err != nil {
 			return nil, fmt.Errorf("could not create dir: %s, %w", opts.path, err)
 		}
