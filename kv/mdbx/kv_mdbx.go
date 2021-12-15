@@ -45,6 +45,14 @@ func WithChaindataTables(defaultBuckets kv.TableCfg) kv.TableCfg {
 	return defaultBuckets
 }
 
+type SyncMode int
+
+const (
+	Sync SyncMode = iota
+	LazySync
+	AsyncSync
+)
+
 type MdbxOpts struct {
 	bucketsCfg    TableCfgFunc
 	path          string
@@ -55,6 +63,7 @@ type MdbxOpts struct {
 	flags         uint
 	log           log.Logger
 	augumentLimit uint64
+	syncMode      SyncMode
 }
 
 func testKVPath() string {
@@ -127,6 +136,11 @@ func (opts MdbxOpts) WithTablessCfg(f TableCfgFunc) MdbxOpts {
 	return opts
 }
 
+func (opts MdbxOpts) SyncMode(mode SyncMode) MdbxOpts {
+	opts.syncMode = mode
+	return opts
+}
+
 func (opts MdbxOpts) Open() (kv.RwDB, error) {
 	var err error
 	if opts.inMem {
@@ -173,6 +187,17 @@ func (opts MdbxOpts) Open() (kv.RwDB, error) {
 		}
 		if err = env.SetOption(mdbx.OptRpAugmentLimit, opts.augumentLimit); err != nil {
 			return nil, err
+		}
+
+		switch opts.syncMode {
+		case LazySync:
+			if err := env.SetOption(mdbx.SafeNoSync, mdbx.SafeNoSync); err != nil {
+				return nil, err
+			}
+		case AsyncSync:
+			if err := env.SetOption(mdbx.UtterlyNoSync, mdbx.UtterlyNoSync); err != nil {
+				return nil, err
+			}
 		}
 		if err = os.MkdirAll(opts.path, 0744); err != nil {
 			return nil, fmt.Errorf("could not create dir: %s, %w", opts.path, err)
