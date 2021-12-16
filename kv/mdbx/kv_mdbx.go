@@ -45,14 +45,6 @@ func WithChaindataTables(defaultBuckets kv.TableCfg) kv.TableCfg {
 	return defaultBuckets
 }
 
-type SyncMode int
-
-const (
-	Sync SyncMode = iota
-	LazySync
-	AsyncSync
-)
-
 type MdbxOpts struct {
 	bucketsCfg    TableCfgFunc
 	path          string
@@ -63,7 +55,6 @@ type MdbxOpts struct {
 	flags         uint
 	log           log.Logger
 	augumentLimit uint64
-	syncMode      SyncMode
 }
 
 func testKVPath() string {
@@ -136,11 +127,6 @@ func (opts MdbxOpts) WithTablessCfg(f TableCfgFunc) MdbxOpts {
 	return opts
 }
 
-func (opts MdbxOpts) SyncMode(mode SyncMode) MdbxOpts {
-	opts.syncMode = mode
-	return opts
-}
-
 func (opts MdbxOpts) Open() (kv.RwDB, error) {
 	var err error
 	if opts.inMem {
@@ -194,9 +180,6 @@ func (opts MdbxOpts) Open() (kv.RwDB, error) {
 		if err = env.SetFlags(mdbx.WriteMap); err != nil {
 			return nil, err
 		}
-		if err := env.SetOption(mdbx.OptSyncBytes, uint64(4*datasize.KB)); err != nil {
-			return nil, err
-		}
 
 		if err = os.MkdirAll(opts.path, 0744); err != nil {
 			return nil, fmt.Errorf("could not create dir: %s, %w", opts.path, err)
@@ -221,12 +204,12 @@ func (opts MdbxOpts) Open() (kv.RwDB, error) {
 		if err = env.SetOption(mdbx.OptDpReverseLimit, 16*1024); err != nil {
 			return nil, err
 		}
-		if err = env.SetOption(mdbx.OptTxnDpLimit, defaultDirtyPagesLimit*2); err != nil { // default is RAM/42*4
+		if err = env.SetOption(mdbx.OptTxnDpLimit, defaultDirtyPagesLimit*8); err != nil { // default is RAM/42*4
 			return nil, err
 		}
 		// must be in the range from 12.5% (almost empty) to 50% (half empty)
 		// which corresponds to the range from 8192 and to 32768 in units respectively
-		if err = env.SetOption(mdbx.OptMergeThreshold16dot16Percent, 32768); err != nil {
+		if err = env.SetOption(mdbx.OptMergeThreshold16dot16Percent, 8192); err != nil {
 			return nil, err
 		}
 	}
