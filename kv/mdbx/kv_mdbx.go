@@ -35,7 +35,7 @@ import (
 	"github.com/torquem-ch/mdbx-go/mdbx"
 )
 
-const pageSize = 16 * 1024
+const pageSize = 4 * 1024
 
 const NonExistingDBI kv.DBI = 999_999_999
 
@@ -188,7 +188,7 @@ func (opts MdbxOpts) Open() (kv.RwDB, error) {
 		if err = env.SetOption(mdbx.OptRpAugmentLimit, opts.augumentLimit); err != nil {
 			return nil, err
 		}
-		if err = env.Sync(false, true); err != nil {
+		if err = env.SetFlags(mdbx.SafeNoSync); err != nil {
 			return nil, err
 		}
 
