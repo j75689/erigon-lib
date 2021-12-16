@@ -35,7 +35,7 @@ import (
 	"github.com/torquem-ch/mdbx-go/mdbx"
 )
 
-const pageSize = 4 * 1024 * 21
+const pageSize = 4 * 1024 * 4
 
 const NonExistingDBI kv.DBI = 999_999_999
 
