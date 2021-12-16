@@ -169,7 +169,7 @@ func (opts MdbxOpts) Open() (kv.RwDB, error) {
 		}
 
 		if opts.augumentLimit == 0 {
-			opts.augumentLimit = 128 * 256 * 1024 // mdbx's default 256 * 1024
+			opts.augumentLimit = 8 * 128 * 256 * 1024 // mdbx's default 256 * 1024
 		}
 		if err = env.SetOption(mdbx.OptRpAugmentLimit, opts.augumentLimit); err != nil {
 			return nil, err
@@ -204,12 +204,12 @@ func (opts MdbxOpts) Open() (kv.RwDB, error) {
 		if err = env.SetOption(mdbx.OptDpReverseLimit, 16*1024); err != nil {
 			return nil, err
 		}
-		if err = env.SetOption(mdbx.OptTxnDpLimit, defaultDirtyPagesLimit*8); err != nil { // default is RAM/42*4
+		if err = env.SetOption(mdbx.OptTxnDpLimit, defaultDirtyPagesLimit*2); err != nil { // default is RAM/42*4
 			return nil, err
 		}
 		// must be in the range from 12.5% (almost empty) to 50% (half empty)
 		// which corresponds to the range from 8192 and to 32768 in units respectively
-		if err = env.SetOption(mdbx.OptMergeThreshold16dot16Percent, 8192); err != nil {
+		if err = env.SetOption(mdbx.OptMergeThreshold16dot16Percent, 32768); err != nil {
 			return nil, err
 		}
 	}
