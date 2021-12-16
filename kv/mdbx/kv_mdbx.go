@@ -191,14 +191,11 @@ func (opts MdbxOpts) Open() (kv.RwDB, error) {
 		if err = env.SetFlags(mdbx.SafeNoSync); err != nil {
 			return nil, err
 		}
-		b, err := env.GetOption(mdbx.OptSyncBytes)
-		if err != nil {
+
+		if err := env.SetOption(mdbx.OptSyncBytes, uint64(4*datasize.MB)); err != nil {
 			return nil, err
 		}
-		fmt.Println("SyncBytes", b)
-		// if err = env.SetOption(mdbx.OptSyncBytes, uint64(4*datasize.KB)); err != nil {
-		// 	return nil, err
-		// }
+
 		if err = env.SetFlags(mdbx.WriteMap); err != nil {
 			return nil, err
 		}
