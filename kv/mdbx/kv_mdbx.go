@@ -35,7 +35,7 @@ import (
 	"github.com/torquem-ch/mdbx-go/mdbx"
 )
 
-const pageSize = 32 * 1024
+const pageSize = 4 * 1024
 
 const NonExistingDBI kv.DBI = 999_999_999
 
@@ -191,7 +191,12 @@ func (opts MdbxOpts) Open() (kv.RwDB, error) {
 		if err = env.SetFlags(mdbx.SafeNoSync); err != nil {
 			return nil, err
 		}
-
+		// if err = env.SetOption(mdbx.OptSyncBytes, uint64(4*datasize.KB)); err != nil {
+		// 	return nil, err
+		// }
+		if err = env.SetFlags(mdbx.WriteMap); err != nil {
+			return nil, err
+		}
 		// switch opts.syncMode {
 		// case LazySync:
 		// 	if err := env.SetOption(mdbx.SafeNoSync, 0); err != nil {
@@ -225,7 +230,7 @@ func (opts MdbxOpts) Open() (kv.RwDB, error) {
 		if err = env.SetOption(mdbx.OptDpReverseLimit, 16*1024); err != nil {
 			return nil, err
 		}
-		if err = env.SetOption(mdbx.OptTxnDpLimit, defaultDirtyPagesLimit*8); err != nil { // default is RAM/42*4
+		if err = env.SetOption(mdbx.OptTxnDpLimit, defaultDirtyPagesLimit*2); err != nil { // default is RAM/42*4
 			return nil, err
 		}
 		// must be in the range from 12.5% (almost empty) to 50% (half empty)
